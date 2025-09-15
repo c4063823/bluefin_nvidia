@@ -1,13 +1,13 @@
 ---
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 # image will be published to ghcr.io/<user>/<name>
-name: bluefin_nvidia
+name: kennytechnologynvidia
 # description will be included in the image's metadata
-description: This is my personal OS image.
+description: This is a nVidia custom image that includes 1Password to work with Brave, Firefox, Chrome, and Edge. And others such as Twingate.
 
 # the base image to build on top of (FROM) and the version tag to use
-base-image: ghcr.io/ublue-os/silverblue-main
-image-version: 42 # latest is also supported if you want new updates ASAP
+base-image: ghcr.io/ublue-os/bluefin-dx-nvidia-open
+image-version: stable # latest is also supported if you want new updates ASAP
 
 # module configuration, executed in order
 # you can include multiple instances of the same module
@@ -17,29 +17,41 @@ modules:
       - source: system
         destination: / # copies files/system/* (* means everything inside it) into your image's root folder /
 
-  - type: dnf
+  - type: rpm-ostree
     repos:
-      copr:
-        - atim/starship
+      - https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
+      - https://packages.microsoft.com/fedora/42/prod/config.repo
+      - https://packages.microsoft.com/yumrepos/edge/config.repo
+      - packages.twingate.com_rpm_.repo
+    optfix:
+      - brave.com
+      - microsoft
+    keys:
+      - https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
+      - https://packages.microsoft.com/keys/microsoft-2025.asc
     install:
-      packages:
-        - micro
-        - starship
-    remove:
-      packages:
-        # example: removing firefox (in favor of the flatpak)
-        # "firefox" is the main package, "firefox-langpacks" is a dependency
-        - firefox
-        - firefox-langpacks # also remove firefox dependency (not required for all packages, this is a special case)
+      - brave-browser
+      - epiphany
+      - https://github.com/GoXLR-on-Linux/goxlr-utility/releases/download/v1.2.2/goxlr-utility-1.2.2-1.x86_64.rpm
+      - microsoft-edge-stable
+      - microsoft-edge-beta
+      - packages-microsoft-prod
+      - twingate
+      - chromium
+      - dotnet-sdk-9.0
+      - nethogs
 
-  - type: default-flatpaks
-    configurations:
-      - notify: true # Send notification after install/uninstall is finished (true/false)
-        scope: system
-        # If no repo information is specified, Flathub will be used by default
-        install: # system flatpaks we want all users to have and not remove
-          - org.mozilla.firefox
-          - org.gnome.Loupe
-      - scope: user # Also add Flathub user repo, but no user packages
+  - type: bling
+    install:
+      - 1password
+
+  - type: script
+    snippets:
+      - "dotnet tool install --global PowerShell"
+
+  - type: gnome-extensions
+    install:
+      - Astra Monitor
+      - Tiling Shell
 
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
